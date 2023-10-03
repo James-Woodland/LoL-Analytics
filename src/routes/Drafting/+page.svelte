@@ -4,90 +4,91 @@
     import "../../app.css";
     import Layout from '../Layout.svelte';
     import { fly } from 'svelte/transition';
-    import { saveDraft } from "./Create/+page.server.js";
+    import { json } from '@sveltejs/kit';
+    import { onMount } from 'svelte';
+    import Select from 'svelte-select';
+    import loadOptions from './tricodes.js'
     
-
-
 	let DraftStack = [
 		{
 			name: 'BB1',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'BB2',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'BB3',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'BB4',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'BB5',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
 		{
 			name: 'RB1',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'RB2',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'RB3',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'RB4',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'RB5',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'BP1',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'BP2',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'BP3',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'BP4',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'BP5',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
 		{
 			name: 'RP1',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'RP2',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'RP3',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'RP4',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
 			name: 'RP5',
-			items: [["None", 0]]
+			items: [["Blank", 0]]
 		},
         {
             name: "Champs",
@@ -131,13 +132,12 @@
                 const json = event.dataTransfer.getData('text/plain');
                 const data = JSON.parse(json);
                 const [item] = DraftStack[data.stackIndex].items.splice(data.itemIndex, 1);      
-                if (DraftStack[stackIndex].items[0][0] == "None") {
+                if (DraftStack[stackIndex].items[0][0] == "Blank") {
                     DraftStack[stackIndex].items[0] = item;
                     if (data.stackIndex != 20) {
-                        DraftStack[data.stackIndex].items[0] = ["None", 0]
+                        DraftStack[data.stackIndex].items[0] = ["Blank", 0]
                     }
                     DraftStack = DraftStack;
-                    console.log("dropped 1")
                     stackHover = null;   
                 }
                 else{
@@ -145,7 +145,6 @@
                     DraftStack[stackIndex].items[0] = item
                     DraftStack[data.stackIndex].items.push(tempStorage)
                     DraftStack = DraftStack;
-                    console.log("dropped 2")
                     stackHover = null;  
                 }       
         }
@@ -154,35 +153,46 @@
             const json = event.dataTransfer.getData('text/plain');
             const data = JSON.parse(json);
             const [item] = DraftStack[data.stackIndex].items.splice(data.itemIndex, 1);
-            console.log(item)
-            if (item[0] != "None") {
+            if (item[0] != "Blank") {
                 DraftStack[stackIndex].items.push(item)
             }
-            DraftStack[data.stackIndex].items[0] = (["None", 0])
+            DraftStack[data.stackIndex].items[0] = (["Blank", 0])
             DraftStack = DraftStack;
             stackHover = null;
                 
             }
         DraftStack[20].items.sort(Comparator)
 	}
-    let name = ""
-    let Opponent = ""
+    let name = "";
+    let opponent = "";
+
+    async function submit(){
+        let url = "/Drafting/Create"
+        console.log(JSON.stringify({DraftStack, name, opponent}))
+        await fetch(url, {
+            method: 'POST',
+            body: JSON.stringify({DraftStack, name, opponent})
+
+        })
+        location.reload()
+    }
+
+    const itemId = 'id';
+    const label = 'code';
+
 </script>
 <main class = "bg-slate-800 flex h-full flex-row overflow-auto w-auto">
     <Layout/>
-    <div class="h-full scroll flex flex-col px-4 mt-4 w-5/6">
+    <div class="h-fit scroll flex flex-col px-4 mt-4 w-5/6">
         <div class="h-28 scroll flex flex-row w-full scrollbar-hide pb-4">
             <div class = "w-4/6 h-full ">
-                <input bind:value={name} placeholder="Draft Name" class="w-full font-bold text-6xl rounded-md bg-slate-600 hover:bg-white">
+                <input id="draftName" bind:value={name} placeholder=" Draft Name" class="w-full font-bold text-6xl rounded-md bg-slate-600 hover:bg-white">
             </div>
-            <div class = "w-1/6 h-full">
-                <select bind:value={Opponent} class = "w-5/6 h-5/6 ml-8 rounded-md font-bold text-5xl mt-1 bg-slate-600 hover:bg-white text-slate-400">
-                    <option value = 1>G2</option>
-                    <option value = 2>MAD</option>
-                </select>
+            <div class = "w-1/6 h-full ml-4">
+                <Select id="tag" {loadOptions} {itemId} {label} placeholder="TriCode" bind:value={opponent} class ="h-[85px] text-6xl bg-slate-600" ></Select>
             </div>
             <div class = "w-1/6">
-                <button class="w-5/6 h-5/6 ml-4 rounded-md font-bold text-5xl mt-1 bg-slate-600 hover:bg-white text-slate-400" on:click={saveDraft(DraftStack, name, Opponent)}>
+                <button class="w-5/6 h-[85px] ml-4 rounded-md font-bold text-6xl bg-slate-600 hover:bg-white text-slate-400" on:click={submit}>
                     Save
                 </button>
             </div>
@@ -200,7 +210,7 @@
                     {#each DraftStack[0].items as item, itemIndex (item)}
                             <div class = "h-20 w-20  ">
                                 <li class = "h-20 w-20  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 0, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -220,7 +230,7 @@
                     {#each DraftStack[1].items as item, itemIndex (item)}
                             <div class = "h-20 w-20  ">
                                 <li class = "h-20 w-20  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 1, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -240,7 +250,7 @@
                     {#each DraftStack[2].items as item, itemIndex (item)}
                             <div class = "h-20 w-20  ">
                                 <li class = "h-20 w-20  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 2, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -260,7 +270,7 @@
                     {#each DraftStack[3].items as item, itemIndex (item)}
                             <div class = "h-20 w-20  ">
                                 <li class = "h-20 w-20  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 3, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -280,7 +290,7 @@
                     {#each DraftStack[4].items as item, itemIndex (item)}
                             <div class = "h-20 w-20  ">
                                 <li class = "h-20 w-20  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 4, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -302,7 +312,7 @@
                     {#each DraftStack[5].items as item, itemIndex (item)}
                             <div class = "h-20 w-20  ">
                                 <li class = "h-20 w-20  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 5, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -322,7 +332,7 @@
                     {#each DraftStack[6].items as item, itemIndex (item)}
                             <div class = "h-20 w-20  ">
                                 <li class = "h-20 w-20  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 6, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -342,7 +352,7 @@
                     {#each DraftStack[7].items as item, itemIndex (item)}
                             <div class = "h-20 w-20  ">
                                 <li class = "h-20 w-20  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 7, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -362,7 +372,7 @@
                     {#each DraftStack[8].items as item, itemIndex (item)}
                             <div class = "h-20 w-20  ">
                                 <li class = "h-20 w-20  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 8, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -382,7 +392,7 @@
                     {#each DraftStack[9].items as item, itemIndex (item)}
                             <div class = "h-20 w-20  ">
                                 <li class = "h-20 w-20  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 9, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -393,7 +403,7 @@
                 </div>
             </div>
         </div>
-        <div class = "w-full h-4/6 flex flex-row">
+        <div class = "w-full h-[700px] flex flex-row">
             <div class = "w-1/5 h-full flex flex-col">
                 <div class = "h-28 w-full mb-4 flex place-content-center" in:receive={{ key: 10}} out:send={{ key: 10}}>
                     <p
@@ -406,7 +416,7 @@
                     {#each DraftStack[10].items as item, itemIndex (item)}
                             <div class = "h-28 w-28">
                                 <li class = "h-28 w-28  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 10, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -426,7 +436,7 @@
                     {#each DraftStack[11].items as item, itemIndex (item)}
                             <div class = "h-28 w-28">
                                 <li class = "h-28 w-28  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 11, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -446,7 +456,7 @@
                     {#each DraftStack[12].items as item, itemIndex (item)}
                             <div class = "h-28 w-28">
                                 <li class = "h-28 w-28  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 12, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -466,7 +476,7 @@
                     {#each DraftStack[13].items as item, itemIndex (item)}
                             <div class = "h-28 w-28">
                                 <li class = "h-28 w-28  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 13, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -486,7 +496,7 @@
                     {#each DraftStack[14].items as item, itemIndex (item)}
                             <div class = "h-28 w-28">
                                 <li class = "h-28 w-28  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 14, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -500,7 +510,7 @@
                 <div class = "w-full h-12">
 
                 </div>
-                <div class = "w-full h-full overflow-y-auto " in:receive={{ key: 20 }} out:send={{ key: 20}}>
+                <div class = "w-full h-5/6 overflow-y-auto " in:receive={{ key: 20 }} out:send={{ key: 20}}>
                     <p
                         class:hovering={stackHover === DraftStack[20].name}
                         on:dragenter={() => (stackHover = DraftStack[20].name)}
@@ -534,7 +544,7 @@
                     {#each DraftStack[15].items as item, itemIndex (item)}
                             <div class = "h-28 w-28">
                                 <li class = "h-28 w-28  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 15, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -554,7 +564,7 @@
                     {#each DraftStack[16].items as item, itemIndex (item)}
                             <div class = "h-28 w-28">
                                 <li class = "h-28 w-28  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 16, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -574,7 +584,7 @@
                     {#each DraftStack[17].items as item, itemIndex (item)}
                             <div class = "h-28 w-28">
                                 <li class = "h-28 w-28  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 17, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -594,7 +604,7 @@
                     {#each DraftStack[18].items as item, itemIndex (item)}
                             <div class = "h-28 w-28">
                                 <li class = "h-28 w-28  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 18, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -614,7 +624,7 @@
                     {#each DraftStack[19].items as item, itemIndex (item)}
                             <div class = "h-28 w-28">
                                 <li class = "h-28 w-28  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 19, itemIndex)}>
-                                    {#if item[0] != "None"}
+                                    {#if item[0] != "Blank"}
                                         <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
                                         " alt="" in:fly>
                                     {/if}
@@ -625,14 +635,20 @@
                 </div>
         </div>
     </div> 
+    <div class = "h-8 bg-slate-600 flex">
+        <div>opponent</div>
+        <div>name</div>
+        <div>Blue Bans</div>
+        <div>Red Bans</div>
+        <div>Blue Picks</div>
+        <div>Red Picks</div>
+    </div>
 </main>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
 <style>
-    .item {
-        display: inline; /* required for flip to work */
-    }
+
     li {
         cursor: pointer;
         display: inline-block;
