@@ -8,6 +8,9 @@
     import { onMount } from 'svelte';
     import Select from 'svelte-select';
     import loadOptions from './tricodes.js'
+    import {CircleArrowDownSolid} from "svelte-awesome-icons"
+
+    let Drafts = [];
     
 	let DraftStack = [
 		{
@@ -167,29 +170,115 @@
     let opponent = "";
 
     async function submit(){
-        let url = "/Drafting/Create"
-        console.log(JSON.stringify({DraftStack, name, opponent}))
-        await fetch(url, {
-            method: 'POST',
-            body: JSON.stringify({DraftStack, name, opponent})
-
-        })
+        if (draftId == 0){
+            let url = "/Drafting/Create"
+            await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify({DraftStack, name, opponent})
+            })
+        }
+        else{
+            let url = "/Drafting/Edit"
+            await fetch(url, {
+                method: 'PUT',
+                body: JSON.stringify({draftId, DraftStack, name, opponent})
+            })
+        }
         location.reload()
     }
+    let champList;
+    let tricodes = [];
+    onMount(() => {
+        async function load(){
+
+            let response = await fetchAsync("/Drafting/AllDrafts")
+            for (let index = 0; index < response.length; index++) {
+                Drafts.push(response[index]);   
+            }
+
+            Drafts = Drafts;
+
+            response = await fetchAsync("/Drafting/Tricodes")
+            for (let index = 0; index < response.length; index++) {
+                tricodes.push(response[index]);   
+            }
+            console.log(tricodes)
+            tricodes = tricodes;
+        }
+        load();
+
+
+    });
 
     const itemId = 'id';
     const label = 'code';
+
+    let draftId = 0;
+
+    async function loadDraft(){
+        let response = await fetchAsync("/Drafting/"+this.id)
+        let responseKeys = Object.keys(response)
+        let excludedChamps = [];
+        for (let i = 0; i < responseKeys.length; i++) {
+            if  (!["draftid","opponentid","name","opponent"].includes(responseKeys[i])){
+                if (response[responseKeys[i]] != "Blank"){
+                    excludedChamps.push(response[responseKeys[i]])
+                }
+            }   
+        }
+        DraftStack[20].items = []
+        let champions = await fetchAsync("http://ddragon.leagueoflegends.com/cdn/13.18.1/data/en_US/champion.json")
+        let champNames = Object.keys(champions["data"])
+        let champNamesDict = {}
+        for (let i = 0; i < champNames.length; i++) {
+            if (!excludedChamps.includes(String(champions["data"][champNames[i]]["key"]))){
+                DraftStack[20].items.push([champions["data"][champNames[i]]["key"],champNames[i]]);
+            }
+            champNamesDict[champions["data"][champNames[i]]["key"]] = champNames[i]
+        }
+        console.log(response)
+        champNamesDict["Blank"] = 0
+        DraftStack[0].items[0] = [response.bb1, champNamesDict[response.bb1]]
+        DraftStack[1].items[0] = [response.bb2, champNamesDict[response.bb2]]
+        DraftStack[2].items[0] = [response.bb3, champNamesDict[response.bb3]]
+        DraftStack[3].items[0] = [response.bb4, champNamesDict[response.bb4]]
+        DraftStack[4].items[0] = [response.bb5, champNamesDict[response.bb5]]
+        DraftStack[5].items[0] = [response.rb1, champNamesDict[response.rb1]]
+        DraftStack[6].items[0] = [response.rb2, champNamesDict[response.rb2]]
+        DraftStack[7].items[0] = [response.rb3, champNamesDict[response.rb3]]
+        DraftStack[8].items[0] = [response.rb4, champNamesDict[response.rb4]]
+        DraftStack[9].items[0] = [response.rb5, champNamesDict[response.rb5]]
+        DraftStack[10].items[0] = [response.bp1, champNamesDict[response.bp1]]
+        DraftStack[11].items[0] = [response.bp2, champNamesDict[response.bp2]]
+        DraftStack[12].items[0] = [response.bp3, champNamesDict[response.bp3]]
+        DraftStack[13].items[0] = [response.bp4, champNamesDict[response.bp4]]
+        DraftStack[14].items[0] = [response.bp5, champNamesDict[response.bp5]]
+        DraftStack[15].items[0] = [response.rp1, champNamesDict[response.rp1]]
+        DraftStack[16].items[0] = [response.rp2, champNamesDict[response.rp2]]
+        DraftStack[17].items[0] = [response.rp3, champNamesDict[response.rp3]]
+        DraftStack[18].items[0] = [response.rp4, champNamesDict[response.rp4]]
+        DraftStack[19].items[0] = [response.rp5, champNamesDict[response.rp5]]
+        draftId = response.draftid
+        name = response.name
+        opponent = response.opponent.id
+        opponent = opponent
+        console.log(opponent)
+        //document.getElementById('tag').value = opponent
+        console.log(document.getElementById('tag').value)
+    }
 
 </script>
 <main class = "bg-slate-800 flex h-full flex-row overflow-auto w-auto">
     <Layout/>
     <div class="h-fit scroll flex flex-col px-4 mt-4 w-5/6">
         <div class="h-28 scroll flex flex-row w-full scrollbar-hide pb-4">
-            <div class = "w-4/6 h-full ">
+            <div class = "w-4/6 h-full">
                 <input id="draftName" bind:value={name} placeholder=" Draft Name" class="w-full font-bold text-6xl rounded-md bg-slate-600 hover:bg-white">
             </div>
             <div class = "w-1/6 h-full ml-4">
-                <Select id="tag" {loadOptions} {itemId} {label} placeholder="TriCode" bind:value={opponent} class ="h-[85px] text-6xl bg-slate-600" ></Select>
+                {#if tricodes != []}
+                    <Select id="tag" items={tricodes} {itemId} {label} placeholder="Tricode" bind:value={opponent} class ="h-[85px] text-6xl bg-slate-600" ></Select>
+                {/if}
             </div>
             <div class = "w-1/6">
                 <button class="w-5/6 h-[85px] ml-4 rounded-md font-bold text-6xl bg-slate-600 hover:bg-white text-slate-400" on:click={submit}>
@@ -635,14 +724,163 @@
                 </div>
         </div>
     </div> 
-    <div class = "h-8 bg-slate-600 flex">
-        <div>opponent</div>
-        <div>name</div>
-        <div>Blue Bans</div>
-        <div>Red Bans</div>
-        <div>Blue Picks</div>
-        <div>Red Picks</div>
+    <div class = "h-fit  w-full flex flex-col justify-center mb-4">
+        <div class = "flex w-fit h-8 font-semibold">
+            <div class = "flex ml-2 w-[90px] bg-slate-600 rounded-t-lg justify-center">
+                <div>Opponent</div>
+            </div>
+            <div class = "flex ml-2 w-[350px] bg-slate-600 rounded-t-lg justify-center"> 
+                <div >Name</div>
+            </div>
+            <div class = "flex ml-2 space-x-1">
+                <div class = "bg-slate-600 px-2 rounded-tl-lg w-[50px] justify-center flex">BB 1</div>
+                <div class = "bg-slate-600 px-2 w-[50px] justify-center flex" >RB 1</div>
+                <div class = "bg-slate-600 px-2 w-[50px] justify-center flex">BB 2</div>
+                <div class = "bg-slate-600 px-2 w-[50px] justify-center flex">RB 2</div>
+                <div class = "bg-slate-600 px-2 w-[50px] justify-center flex">BB 3</div>
+                <div class = "bg-slate-600 px-2 rounded-tr-lg w-[50px] justify-center flex">RB 3</div>
+            </div>
+            <div class = "flex ml-2 space-x-1">
+                <div class = "bg-slate-600 px-2 rounded-tl-lg w-[50px] justify-center flex">BP 1</div>
+                <div class = "bg-slate-600 px-2 w-[88px] justify-center flex">RP 1-2</div>
+                <div class = "bg-slate-600 px-2 w-[88px] justify-center flex">BP 2-3</div>
+                <div class = "bg-slate-600 px-2 rounded-tr-lg w-[50px] justify-center flex">RP 3</div>
+            </div>
+            <div class = "flex ml-2 space-x-1">
+                <div class = "bg-slate-600 px-2 rounded-tl-lg w-[50px] justify-center flex">BB 4</div>
+                <div class = "bg-slate-600 px-2 w-[50px] justify-center flex">RB 4</div>
+                <div class = "bg-slate-600 px-2 w-[50px] justify-center flex">BB 5</div>
+                <div class = "bg-slate-600 px-2 rounded-tr-lg w-[50px] justify-center flex">RB 5</div>
+            </div>
+            <div class = "flex ml-2 space-x-1">
+                <div class = "bg-slate-600 px-2 rounded-tl-lg w-[50px] justify-center flex">RP 4</div>
+                <div class = "bg-slate-600 px-2 w-[88px] justify-center flex">BP 4-5</div>
+                <div class = "bg-slate-600 px-2 rounded-tr-lg w-[50px] justify-center flex">RP 5</div>
+            </div>
+        </div>
+        <div class = "flex flex-col w-fit h-fit mt-1 font-semibold">
+            {#if Drafts.length != 0}
+                {#each Drafts as Draft}
+                    <div class = "flex w-fit h-10 mt-2">
+                        <div class = "flex ml-2 w-[90px] bg-slate-600 justify-center">
+                            <div class = "self-center text-2xl font-bold">{Draft.opponent.code}</div>
+                        </div>
+                        <div class = "flex ml-2 w-[350px] bg-slate-600 justify-start"> 
+                            <div class = "ml-2 self-center">{Draft.name}</div>
+                        </div>
+                        <div class = "flex ml-2 space-x-1">
+                            <div class = "bg-blue-700 px-2 w-[50px] flex justify-center"> 
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img class = "grayscale " src="./champIcons/{Draft.bb1}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                            <div class = "bg-red-700 px-2 w-[50px] flex justify-center ">
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img class = "grayscale " src="./champIcons/{Draft.rb2}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                            <div class = "bg-blue-700 px-2 w-[50px] flex justify-center ">
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img class = "grayscale " src="./champIcons/{Draft.bb2}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                            <div class = "bg-red-700 px-2 w-[50px] flex justify-center ">
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img class = "grayscale " src="./champIcons/{Draft.rb2}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                            <div class = "bg-blue-700 px-2 w-[50px] flex justify-center">
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img class = "grayscale " src="./champIcons/{Draft.bb3}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                            <div class = "bg-red-700 px-2 w-[50px] flex justify-center ">
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img class = "grayscale " src="./champIcons/{Draft.rb3}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                        </div>
+                        <div class = "flex ml-2 space-x-1">
+                            <div class = "bg-blue-700 px-2 w-[50px] flex justify-center ">
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img  src="./champIcons/{Draft.bp1}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                            <div class = "bg-red-700 px-2 w-[88px] flex justify-center ">
+                                <div class = "h-[34px] self-center mr-1 bg-slate-700 w-[34px]">
+                                    <img  src="./champIcons/{Draft.rp1}.webp" alt="" in:fly>
+                                </div>
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img  src="./champIcons/{Draft.rp2}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                            <div class = "bg-blue-700 px-2 w-[88px] flex justify-center ">
+                                <div class = "h-[34px] self-center mr-1 bg-slate-700 w-[34px]">
+                                    <img  src="./champIcons/{Draft.bp2}.webp" alt="" in:fly>
+                                </div>
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img  src="./champIcons/{Draft.bp3}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                            <div class = "bg-red-700 px-2 w-[50px] flex justify-center ">
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]" >
+                                    <img  src="./champIcons/{Draft.rp3}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                        </div>
+                        <div class = "flex ml-2 space-x-1">
+                            <div class = "bg-blue-700 px-2 w-[50px] flex justify-center ">
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img class = "grayscale " src="./champIcons/{Draft.bb4}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                            <div class = "bg-red-700 px-2 w-[50px] flex justify-center ">
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img class = "grayscale " src="./champIcons/{Draft.rb4}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                            <div class = "bg-blue-700 px-2 w-[50px] flex justify-center ">
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img class = "grayscale" src="./champIcons/{Draft.bb5}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                            <div class = "bg-red-700 px-2 w-[50px] flex justify-center ">
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img class = "grayscale " src="./champIcons/{Draft.rb5}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                        </div>
+                        <div class = "flex ml-2 space-x-1">
+                            <div class = "bg-red-700 px-2 w-[50px] flex justify-center content-center">
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img src="./champIcons/{Draft.rp4}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                            <div class = "bg-blue-700 px-2 w-[88px] flex justify-center content-center">
+                                <div class = "h-[34px] self-center mr-1 bg-slate-700 w-[34px]">
+                                    <img src="./champIcons/{Draft.bp4}.webp" alt="" in:fly>
+                                </div>
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img src="./champIcons/{Draft.bp5}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                            <div class = "bg-red-700 px-2 w-[50px] flex justify-center content-center">
+                                <div class = "h-[34px] self-center bg-slate-700 w-[34px]">
+                                    <img src="./champIcons/{Draft.rp5}.webp" alt="" in:fly>
+                                </div>
+                            </div>
+                        </div>
+                        <button class = "bg-slate-600 h-10 w-10 ml-2 rounded-lg hover:bg-slate-400" id = {Draft.draftid} on:click={loadDraft}>
+                            <div class = "flex justify-center content-center">
+                                <CircleArrowDownSolid />
+                            </div>
+                        </button>
+                    </div>
+                {/each}
+            {/if}
+        </div>
     </div>
+    
 </main>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
