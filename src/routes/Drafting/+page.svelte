@@ -96,6 +96,10 @@
         {
             name: "Champs",
             items: []
+        },
+        {
+            name: "allChamps",
+            items: []
         }
 	];
 
@@ -105,6 +109,7 @@
         let i = 0
         while (i < Object.keys(champions["data"]).length) {
             DraftStack[20].items.push([champions["data"][champNames[i]]["key"],champNames[i]]);
+            DraftStack[21].items.push([champions["data"][champNames[i]]["key"],champNames[i]]);
             i++
         }
     }
@@ -130,6 +135,7 @@
         }
 
 	function drop(event, stackIndex) {
+        console.log(stackIndex)
         if (stackIndex != 20){    
                 event.preventDefault();
                 const json = event.dataTransfer.getData('text/plain');
@@ -137,8 +143,11 @@
                 const [item] = DraftStack[data.stackIndex].items.splice(data.itemIndex, 1);      
                 if (DraftStack[stackIndex].items[0][0] == "Blank") {
                     DraftStack[stackIndex].items[0] = item;
+                    console.log(data.stackIndex)
                     if (data.stackIndex != 20) {
+                        console.log("fuck")
                         DraftStack[data.stackIndex].items[0] = ["Blank", 0]
+                        
                     }
                     DraftStack = DraftStack;
                     stackHover = null;   
@@ -161,10 +170,13 @@
             }
             DraftStack[data.stackIndex].items[0] = (["Blank", 0])
             DraftStack = DraftStack;
-            stackHover = null;
-                
+            stackHover = null;   
             }
+        filterChamps()
         DraftStack[20].items.sort(Comparator)
+        DraftStack[21].items = DraftStack[21].items
+        DraftStack[21].items.sort(Comparator)
+        console.log(DraftStack)
 	}
     let name = "";
     let opponent = "";
@@ -188,6 +200,7 @@
     }
     let champList;
     let tricodes = [];
+    let filteredDrafts = [];
     onMount(() => {
         async function load(){
 
@@ -195,14 +208,13 @@
             for (let index = 0; index < response.length; index++) {
                 Drafts.push(response[index]);   
             }
-
             Drafts = Drafts;
+            filteredDrafts = Drafts;
 
             response = await fetchAsync("/Drafting/Tricodes")
             for (let index = 0; index < response.length; index++) {
                 tricodes.push(response[index]);   
             }
-            console.log(tricodes)
             tricodes = tricodes;
         }
         load();
@@ -227,12 +239,14 @@
             }   
         }
         DraftStack[20].items = []
+        DraftStack[21].items = []
         let champions = await fetchAsync("http://ddragon.leagueoflegends.com/cdn/13.18.1/data/en_US/champion.json")
         let champNames = Object.keys(champions["data"])
         let champNamesDict = {}
         for (let i = 0; i < champNames.length; i++) {
             if (!excludedChamps.includes(String(champions["data"][champNames[i]]["key"]))){
                 DraftStack[20].items.push([champions["data"][champNames[i]]["key"],champNames[i]]);
+                DraftStack[21].items.push([champions["data"][champNames[i]]["key"],champNames[i]]);
             }
             champNamesDict[champions["data"][champNames[i]]["key"]] = champNames[i]
         }
@@ -266,6 +280,25 @@
         //document.getElementById('tag').value = opponent
         console.log(document.getElementById('tag').value)
     }
+    let draftTriFilter = ""
+    let draftNameFilter = ""
+    let champFilter = ""
+
+    function filterDrafts(){
+        console.log(draftTriFilter)
+        filteredDrafts = Drafts.filter(Draft => Draft.name.toUpperCase().includes(draftNameFilter.toUpperCase()))
+        filteredDrafts = filteredDrafts.filter(Draft => Draft.opponent.code.includes(draftTriFilter.toUpperCase()))
+        filteredDrafts = filteredDrafts
+    }
+
+    function filterChamps(){
+        console.log(champFilter)
+        console.log(DraftStack[20].items)
+        DraftStack[21].items = DraftStack[20].items.filter(champ => champ[1].toUpperCase().startsWith(champFilter.toUpperCase()))
+        DraftStack[21].items = DraftStack[21].items
+        console.log(DraftStack[21].items)
+    }
+
 
 </script>
 <main class = "bg-slate-800 flex h-full flex-row overflow-auto w-auto">
@@ -597,7 +630,9 @@
             </div>
             <div class = "w-3/5 h-full">
                 <div class = "w-full h-12">
-
+                    <div class = "h-full w-1/3 ml-2 rounded-lg">
+                        <input bind:value={champFilter} placeholder=" Champion Name" class="w-full h-10 text-lg font-bold rounded-md bg-slate-600 hover:bg-white" on:input={filterChamps}>
+                    </div>
                 </div>
                 <div class = "w-full h-5/6 overflow-y-auto " in:receive={{ key: 20 }} out:send={{ key: 20}}>
                     <p
@@ -606,11 +641,11 @@
                         on:dragleave={() => (stackHover = null)}
                         on:drop={(event) => drop(event, 20)}
                         ondragover="return false"
-                        class = "w-full h-full flex flex-wrap flex-row"
+                        class = "w-full h-fit flex flex-wrap flex-row space-y-2"
                     >
                     {#await main() then data}
-                        {#each DraftStack[20].items as item, itemIndex (item)}
-                            <div class = "h-24 m-2 w-24 grid-item p-0 ">
+                        {#each DraftStack[21].items as item, itemIndex (item)}
+                            <div class = "h-24 m-2 w-24 grid-item p-0">
                                 <li class = "h-24 w-24  bg-slate-600"draggable={true} on:dragstart={(event) => dragStart(event, 20, itemIndex)}>
                                     <img class = "grayscale hover:grayscale-0" src="./champIcons/{item[0]}.webp
 									" alt="" in:fly>
@@ -725,6 +760,14 @@
         </div>
     </div> 
     <div class = "h-fit  w-full flex flex-col justify-center mb-4">
+        <div class = "h-10 w-full flex mb-2">
+            <div class = "flex ml-2 w-[90px] bg-slate-600 rounded-t-lg justify-center">
+                <input type="text" class = "rounded-lg w-full h-[42px]" bind:value={draftTriFilter} on:input={filterDrafts}>
+            </div>
+            <div class = "flex ml-2 w-[350px] rounded-t-lg justify-center h-10"> 
+                <input type="text" class = "rounded-lg w-full h-[42px]" bind:value={draftNameFilter} on:input={filterDrafts}>
+            </div>
+        </div>
         <div class = "flex w-fit h-8 font-semibold">
             <div class = "flex ml-2 w-[90px] bg-slate-600 rounded-t-lg justify-center">
                 <div>Opponent</div>
@@ -759,8 +802,8 @@
             </div>
         </div>
         <div class = "flex flex-col w-fit h-fit mt-1 font-semibold">
-            {#if Drafts.length != 0}
-                {#each Drafts as Draft}
+            {#if filteredDrafts.length != 0}
+                {#each filteredDrafts as Draft}
                     <div class = "flex w-fit h-10 mt-2">
                         <div class = "flex ml-2 w-[90px] bg-slate-600 justify-center">
                             <div class = "self-center text-2xl font-bold">{Draft.opponent.code}</div>
